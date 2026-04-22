@@ -1,0 +1,132 @@
+### =============================================================
+### Expense Approval Pipeline — Durable Functions Test Suite
+### =============================================================
+### Base URL (update if running on a different port)
+@baseUrl = http://localhost:7071/api
+
+### After submitting an expense that requires manager approval,
+### copy the instance ID from the response and set it here:
+@instanceId = 8b9655827c81459fb04dfed4b45e44ef
+
+
+### ---------------------------------------------------------------
+### SCENARIO 1: Valid expense UNDER $100 — expect auto-approval
+### ---------------------------------------------------------------
+POST {{baseUrl}}/expense
+Content-Type: application/json
+
+{
+  "employee_name": "Alice Smith",
+  "employee_email": "alice@example.com",
+  "amount": 45.00,
+  "category": "meals",
+  "description": "Team lunch",
+  "manager_email": "manager@example.com"
+}
+
+
+### ---------------------------------------------------------------
+### SCENARIO 2: Valid expense >= $100, manager APPROVES
+### Step 1 — Submit the expense (copy instance ID from response)
+### ---------------------------------------------------------------
+POST {{baseUrl}}/expense
+Content-Type: application/json
+
+{
+  "employee_name": "Bob Jones",
+  "employee_email": "bob@example.com",
+  "amount": 350.00,
+  "category": "travel",
+  "description": "Flight to client site",
+  "manager_email": "manager@example.com"
+}
+
+
+### Step 2 — Manager approves (paste instance ID from Step 1 above)
+POST {{baseUrl}}/expense/{{instanceId}}/decision
+Content-Type: application/json
+
+{
+  "decision": "approve"
+}
+
+
+### ---------------------------------------------------------------
+### SCENARIO 3: Valid expense >= $100, manager REJECTS
+### Step 1 — Submit the expense (copy instance ID from response)
+### ---------------------------------------------------------------
+POST {{baseUrl}}/expense
+Content-Type: application/json
+
+{
+  "employee_name": "Carol White",
+  "employee_email": "carol@example.com",
+  "amount": 200.00,
+  "category": "equipment",
+  "description": "External monitor",
+  "manager_email": "manager@example.com"
+}
+
+
+### Step 2 — Manager rejects (paste instance ID from Step 1 above)
+POST {{baseUrl}}/expense/{{instanceId}}/decision
+Content-Type: application/json
+
+{
+  "decision": "reject"
+}
+
+
+### ---------------------------------------------------------------
+### SCENARIO 4: Valid expense >= $100, NO manager response — escalated
+### Submit and then do nothing. After TIMEOUT_MINUTES (default: 5 min)
+### the orchestrator will auto-approve and flag as "escalated".
+### ---------------------------------------------------------------
+POST {{baseUrl}}/expense
+Content-Type: application/json
+
+{
+  "employee_name": "David Lee",
+  "employee_email": "david@example.com",
+  "amount": 500.00,
+  "category": "software",
+  "description": "Annual SaaS subscription",
+  "manager_email": "manager@example.com"
+}
+
+
+### ---------------------------------------------------------------
+### SCENARIO 5: Missing required fields — expect validation error
+### (amount and manager_email are omitted)
+### ---------------------------------------------------------------
+POST {{baseUrl}}/expense
+Content-Type: application/json
+
+{
+  "employee_name": "Eve Brown",
+  "employee_email": "eve@example.com",
+  "category": "supplies",
+  "description": "Office pens"
+}
+
+
+### ---------------------------------------------------------------
+### SCENARIO 6: Invalid category — expect validation error
+### ---------------------------------------------------------------
+POST {{baseUrl}}/expense
+Content-Type: application/json
+
+{
+  "employee_name": "Frank Green",
+  "employee_email": "frank@example.com",
+  "amount": 75.00,
+  "category": "entertainment",
+  "description": "Client dinner",
+  "manager_email": "manager@example.com"
+}
+
+
+### ---------------------------------------------------------------
+### UTILITY: Check orchestration status by instance ID
+### ---------------------------------------------------------------
+GET {{baseUrl}}/orchestrators/expense_orchestrator/{{instanceId}}

@@ -1,0 +1,12 @@
+### Test validation function
+POST http://localhost:7071/api/validate-expense
+Content-Type: application/json
+
+{
+  "employee_name": "Fayz",
+  "employee_email": "fayz@email.com",
+  "amount": 150,
+  "category": "travel",
+  "description": "Flight booking",
+  "manager_email": "manager@email.com"
+}
